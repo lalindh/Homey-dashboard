@@ -3,43 +3,109 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Homey Vegg Dashboard</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Lalindh Homey Dashboard</title>
+  <style>
+    body { margin: 0; background: #000; color: #0f0; font-family: 'Courier New', monospace; height: 100vh; overflow: hidden; }
+    .login { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); padding: 40px; border: 3px solid #0f0; border-radius: 10px; text-align: center; z-index: 1000; }
+    .login input { display: block; margin: 15px auto; padding: 12px; font-size: 18px; width: 250px; background: #111; color: #0f0; border: 1px solid #0f0; border-radius: 5px; }
+    .login button { background: #0f0; color: #000; border: none; padding: 12px 30px; font-size: 18px; cursor: pointer; border-radius: 5px; margin-top: 10px; }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; padding: 20px; height: 100vh; }
+    .widget { background: rgba(0,255,0,0.1); border: 2px solid #0f0; padding: 25px; border-radius: 10px; font-size: 2em; cursor: pointer; text-align: center; transition: all 0.3s; }
+    .widget:hover { background: rgba(0,255,0,0.3); }
+    button.widget { font-size: 1.2em; }
+  </style>
 </head>
 <body>
+  <!-- LOGIN -->
   <div id="login" class="login">
-    <h2>Dashboard Login</h2>
+    <h2>🏠 Homey Dashboard</h2>
     <input type="text" id="user" placeholder="Brukernavn">
     <input type="password" id="pass" placeholder="Passord">
     <button onclick="login()">Logg inn</button>
   </div>
+
+  <!-- DASHBOARD -->
   <div id="dashboard" style="display:none;">
     <div class="grid">
-      <div class="widget" id="klokke">12:00</div>
-      <div class="widget" id="lys-stue">Stue Lys: AV</div>
+      <div class="widget" id="klokke">20:35</div>
+      <div class="widget" id="lys-stue">Lys: AV</div>
       <div class="widget" id="temperatur">22°C</div>
-      <button class="widget" onclick="startFlow('flow_uuid')">Kveld Flow</button>
+      <div class="widget">
+        <button onclick="startFlow('DIN_FLOW_ID')">🌙 Kveld Flow</button>
+      </div>
     </div>
   </div>
-  <script src="https://cdn.athom.com/homey-api/latest/homey-api.js"></script>
-  <script src="script.js"></script>
-  <script>
-    const USER = 'admin';  // Bytt ditt brukernavn
-    const PASS = 'homey123';  // Bytt ditt passord
 
+  <script src="https://cdn.athom.com/homey-api/latest/homey-api.js"></script>
+  <script>
+    // DINE VERDIER
+    const USER = 'admin';  // Bytt
+    const PASS = 'homey123';  // Bytt
+    const HOMEY_URL = 'https://6454f22f93b0200ba1511ccd.connect.athom.com';
+    const TOKEN = 'aaa17add-1881-4cce-a03e-2f0be2199a95:09d4be1b-7565-4022-8770-0d98e3bb1fb3:31b5817c762ae7a0b3eed2c865b19a4bcb49b114';
+    const LYS_ID = '077cff29-657a-49a4-b358-d4a5f5868ac0';
+
+    let homeyApi;
+
+    // LOGIN
     function login() {
       const u = document.getElementById('user').value;
       const p = document.getElementById('pass').value;
       if (u === USER && p === PASS) {
         document.getElementById('login').style.display = 'none';
         document.getElementById('dashboard').style.display = 'block';
-        init();  // Start Homey
+        initHomey();
       } else {
-        alert('Feil brukernavn eller passord!');
+        alert('❌ Feil login!');
       }
     }
-    // Enter-tast
     document.addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
+
+    // HOMEY
+    async function initHomey() {
+      if (typeof HomeyAPI === 'undefined') {
+        setTimeout(initHomey, 500);
+        return;
+      }
+      homeyApi = new HomeyAPI({ url: HOMEY_URL, token: TOKEN });
+      try {
+        await homeyApi.connect();
+        console.log('✅ Homey OK!');
+        updateAll();
+        setInterval(updateAll, 2000);
+      } catch(e) {
+        console.log('❌ Homey:', e);
+        document.getElementById('lys-stue').textContent = 'Homey feil';
+      }
+    }
+
+    async function updateAll() {
+      document.getElementById('klokke').textContent = new Date().toLocaleTimeString('no-NO');
+      if (!homeyApi) return;
+      try {
+        const devices = await homeyApi.devices.getDevices();
+        const lys = devices[LYS_ID] || {};
+        document.getElementById('lys-stue').innerHTML = `Lys: ${lys.onoff ? '🟢 PÅ' : '🔴 AV'}<br><small>ID: ${LYS_ID.slice(-8)}</small>`;
+        document.getElementById('lys-stue').onclick = () => toggleLys();
+      } catch(e) { console.log(e); }
+    }
+
+    async function toggleLys() {
+      if (!homeyApi) return;
+      const devices = await homeyApi.devices.getDevices();
+      const lys = devices[LYS_ID];
+      const nyVerdi = !lys.onoff;
+      await homeyApi.devices.setCapabilityValue({
+        deviceId: LYS_ID,
+        capabilityId: 'onoff',
+        value: nyVerdi
+      });
+      console.log(`Lys ${nyVerdi ? 'PÅ' : 'AV'}`);
+    }
+
+    async function startFlow(flowId) {
+      await homeyApi.flows.triggerFlow({ id: flowId });
+    }
   </script>
 </body>
 </html>
