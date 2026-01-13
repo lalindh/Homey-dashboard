@@ -7,11 +7,11 @@ async function init() {
   homeyApi = new HomeyAPI({ url: HOMEY_URL, token: TOKEN });
   try {
     await homeyApi.connect();
-    console.log('Homey koblet!');
+    console.log('✅ Homey koblet!');
     updateDashboard();
-    setInterval(updateDashboard, 3000);
+    setInterval(updateDashboard, 2000);  // Oppdater hvert 2s
   } catch(e) {
-    console.log('Homey feil:', e);
+    console.log('❌ Homey feil:', e);
   }
 }
 
@@ -19,17 +19,29 @@ async function updateDashboard() {
   document.getElementById('klokke').textContent = new Date().toLocaleTimeString('no-NO');
   try {
     const devices = await homeyApi.devices.getDevices();
-    console.log('Enheter:', Object.keys(devices));  // Se dine devices i konsoll
-    // Erstatt 'DIN_DEVICE_ID' med en ID fra konsoll
-    const lysStue = devices['DIN_LYS_STUE_ID'] || {};
-    document.getElementById('lys-stue').textContent = `Stue Lys: ${lysStue.onoff ? 'PÅ' : 'AV'}`;
-    document.getElementById('lys-stue').onclick = () => toggleDevice('DIN_LYS_STUE_ID', 'onoff');
-    document.getElementById('temperatur').textContent = `${(devices['DIN_TEMP_ID']?.measure_temperature || 22).toFixed(1)}°C`;
-  } catch(e) { console.log('Oppdater feil:', e); }
+    console.log('📱 Alle enheter:', Object.keys(devices));
+    
+    // DITT LYS: 077cff29-657a-49a4-b358-d4a5f5868ac0
+    const mittLys = devices['077cff29-657a-49a4-b358-d4a5f5868ac0'] || {};
+    document.getElementById('lys-stue').textContent = `Lys: ${mittLys.onoff ? '🟢 PÅ' : '🔴 AV'}`;
+    document.getElementById('lys-stue').onclick = () => toggleLys();
+    
+    // Temperatur dummy (erstatt med din)
+    document.getElementById('temperatur').textContent = '22.5°C';
+  } catch(e) {
+    document.getElementById('lys-stue').textContent = 'Feil: ' + e.message;
+  }
 }
 
-async function toggleDevice(deviceId, capability) {
-  await homeyApi.devices.setCapabilityValue({ deviceId, capabilityId: capability, value: true });
+async function toggleLys() {
+  const lys = (await homeyApi.devices.getDevices())['077cff29-657a-49a4-b358-d4a5f5868ac0'];
+  const nyVerdi = !lys.onoff;
+  await homeyApi.devices.setCapabilityValue({
+    deviceId: '077cff29-657a-49a4-b358-d4a5f5868ac0',
+    capabilityId: 'onoff',  // Standard for lys
+    value: nyVerdi
+  });
+  console.log(`Lys satt til: ${nyVerdi ? 'PÅ' : 'AV'}`);
 }
 
 async function startFlow(flowId) {
