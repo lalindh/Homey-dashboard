@@ -1,30 +1,39 @@
-const HOMEY_URL = 'DIN_HOMEY_URL'; // f.eks. https://myhomey.homey.cloud
-const TOKEN = 'DIN_TOKEN';
-let homey;
+const HOMEY_URL = 'https://6454f22f93b0200ba1511ccd.connect.athom.com';
+const TOKEN = 'aaa17add-1881-4cce-a03e-2f0be2199a95:09d4be1b-7565-4022-8770-0d98e3bb1fb3:31b5817c762ae7a0b3eed2c865b19a4bcb49b114';
+
+let homeyApi;
 
 async function init() {
-  homey = new HomeyAPI({ url: HOMEY_URL, token: TOKEN });
-  await homey.connect();
-  updateDashboard();
-  setInterval(updateDashboard, 3000);
+  homeyApi = new HomeyAPI({ url: HOMEY_URL, token: TOKEN });
+  try {
+    await homeyApi.connect();
+    console.log('Homey koblet!');
+    updateDashboard();
+    setInterval(updateDashboard, 3000);
+  } catch(e) {
+    console.log('Homey feil:', e);
+  }
 }
 
 async function updateDashboard() {
   document.getElementById('klokke').textContent = new Date().toLocaleTimeString('no-NO');
   try {
-    const devices = await homey.devices.getDevices();
-    // Tilpass: Erstatt med dine device IDs
-    const lys = devices['DIN_LYS_DEVICE_ID'] || {};
-    document.getElementById('lys-stue').textContent = `Stue Lys: ${lys.onoff ? 'PÅ' : 'AV'}`;
-    document.getElementById('lys-stue').onclick = () => toggleDevice('DIN_LYS_DEVICE_ID', 'onoff');
-  } catch(e) { console.log('Feil:', e); }
+    const devices = await homeyApi.devices.getDevices();
+    console.log('Enheter:', Object.keys(devices));  // Se dine devices i konsoll
+    // Erstatt 'DIN_DEVICE_ID' med en ID fra konsoll
+    const lysStue = devices['DIN_LYS_STUE_ID'] || {};
+    document.getElementById('lys-stue').textContent = `Stue Lys: ${lysStue.onoff ? 'PÅ' : 'AV'}`;
+    document.getElementById('lys-stue').onclick = () => toggleDevice('DIN_LYS_STUE_ID', 'onoff');
+    document.getElementById('temperatur').textContent = `${(devices['DIN_TEMP_ID']?.measure_temperature || 22).toFixed(1)}°C`;
+  } catch(e) { console.log('Oppdater feil:', e); }
 }
 
-async function toggleDevice(id, cap) {
-  const device = (await homey.devices.getDevices())[id];
-  await homey.devices.setCapabilityValue({deviceId: id, capabilityId: cap, value: !device[cap]});
+async function toggleDevice(deviceId, capability) {
+  await homeyApi.devices.setCapabilityValue({ deviceId, capabilityId: capability, value: true });
 }
 
-async function startFlow(id) { await homey.flows.triggerFlow({id}); }
+async function startFlow(flowId) {
+  await homeyApi.flows.triggerFlow({ id: flowId });
+}
 
 init();
