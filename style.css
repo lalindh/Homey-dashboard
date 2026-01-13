@@ -1,0 +1,4 @@
+body { margin: 0; background: #000; color: #0f0; font-family: monospace; height: 100vh; }
+.grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 20px; padding: 20px; height: 100vh; }
+.widget { background: rgba(0,255,0,0.1); border: 2px solid #0f0; padding: 20px; border-radius: 10px; font-size: 2em; cursor: pointer; text-align: center; }
+button { background: #0f0; color: #000; border: none; padding: 15px; font-size: 1.2em; border-radius: 5px; width: 100%; }
