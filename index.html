@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Homey Vegg Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="grid">
+    <div class="widget" id="klokke">12:00</div>
+    <div class="widget" id="lys-stue">Stue Lys: AV</div>
+    <div class="widget" id="temperatur">22°C</div>
+    <button class="widget" onclick="startFlow('flow_uuid')">Kveld Flow</button>
+  </div>
+  <script src="https://cdn.athom.com/homey-api/latest/homey-api.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
